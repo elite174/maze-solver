@@ -239,6 +239,7 @@ export class Maze {
       reachableItems = this.findReachableItems(currentPosition);
     }
 
+    console.log('Going to exit...')
     // Here we collected all the items, so now we need to go to the exit
     this.revealExit();
 
