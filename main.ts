@@ -25,7 +25,8 @@ const writeProgram = (xennialInstructions: string[]) => {
 3010  POKE c,0
 3011  GOSUB 6000
 3013 END IF
-3014 GOTO ${INSTRUCTIONS_START_LINE}+256*PEEK(li_1)+PEEK(li_0)`;
+3014 GOTO ${INSTRUCTIONS_START_LINE}+256*PEEK(li_1)+PEEK(li_0)
+`;
 
   const steps = xennialInstructions.join("\r\n");
 
@@ -36,7 +37,8 @@ const writeProgram = (xennialInstructions: string[]) => {
 6004   POKE li_0,0
 6005   POKE li_1,PEEK(li_1)+1
 6006 END IF
-6007 RETURN`;
+6007 RETURN
+`;
 
   writeResultsTo(initialization, XENNIAL_FILE_NAME);
   writeResultsTo(steps, XENNIAL_FILE_NAME, false);
