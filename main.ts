@@ -28,7 +28,7 @@ const writeProgram = (xennialInstructions: string[]) => {
 3014 GOTO ${INSTRUCTIONS_START_LINE}+256*PEEK(li_1)+PEEK(li_0)
 `;
 
-  const steps = xennialInstructions.join("\r\n");
+  const steps = xennialInstructions.join("\r\n") + "\r\n";
 
   const incSubRoutine = `6000 REM inc li
 6001 IF PEEK(li_0)+1 < 256 THEN
@@ -74,4 +74,4 @@ const xennialStrings = converter.convertPath(resultPath);
 
 writeProgram(xennialStrings);
 
-console.log('Done!');
+console.log("Done!");
