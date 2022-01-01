@@ -23,8 +23,6 @@ export class XennialConverter {
 
   private sameDirectionCount = 0;
 
-  private targetPosition: Coordinates;
-
   constructor(
     initialLineNumber: number,
     initialPosition: Coordinates,
@@ -32,11 +30,10 @@ export class XennialConverter {
   ) {
     this.currentPosition = initialPosition;
     this.currentLineNumber = initialLineNumber;
-    this.targetPosition = new Coordinates(initialPosition.i, initialPosition.j);
   }
 
   convertPath(path: Coordinates[]): string[] {
-    console.log('Converting...');
+    console.log("Converting...");
 
     const instructions: string[] = [];
 
