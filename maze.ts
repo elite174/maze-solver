@@ -1,16 +1,15 @@
 import { CellToNumber, Cell, NumberToCell } from "./constants.ts";
 import { Position } from "./position.ts";
 import { isKey, isDoor } from "./utils.ts";
+import { Coordinates } from "./models/Coordinates.ts";
 
-import type { Coordinates, Key, Door, CellValue } from "./types.ts";
+import type { Key, Door, CellValue } from "./types.ts";
 
 type ReachableItem = [CellValue, Coordinates];
 
-const coordsToString = (coords: Coordinates) => `${coords[0]}-${coords[1]}`;
-
 export class Maze {
   static gridNodeToCoordinates(node: GridNode): Coordinates {
-    return [node.x, node.y];
+    return new Coordinates(node.x, node.y);
   }
 
   private treasureCount = 0;
@@ -104,40 +103,40 @@ export class Maze {
 
       // If current cell is unusual, add to result
       if (
-        this.maze[currentPosition[0]][currentPosition[1]] !==
+        this.maze[currentPosition.i][currentPosition.j] !==
         CellToNumber[Cell.Empty]
       ) {
         result.push([
-          NumberToCell[this.maze[currentPosition[0]][currentPosition[1]]],
+          NumberToCell[this.maze[currentPosition.i][currentPosition.j]],
           currentPosition,
         ]);
       }
 
-      visitedPositions.add(coordsToString(currentPosition));
+      visitedPositions.add(currentPosition.toString());
 
       for (
-        let i = Math.max(0, currentPosition[0] - 1);
-        i <= Math.min(this.maze.length, currentPosition[0] + 1);
+        let i = Math.max(0, currentPosition.i - 1);
+        i <= Math.min(this.maze.length, currentPosition.i + 1);
         i++
       ) {
         for (
-          let j = Math.max(0, currentPosition[1] - 1);
-          j <= Math.min(this.maze[i].length, currentPosition[1] + 1);
+          let j = Math.max(0, currentPosition.j - 1);
+          j <= Math.min(this.maze[i].length, currentPosition.j + 1);
           j++
         ) {
-          if (visitedPositions.has(coordsToString([i, j]))) continue;
+          if (visitedPositions.has(Coordinates.toString(i, j))) continue;
 
           if (
             this.maze[i][j] !== CellToNumber[Cell.Wall] &&
-            !visitedPositions.has(coordsToString([i, j]))
+            !visitedPositions.has(Coordinates.toString(i, j))
           ) {
-            stack.push([i, j]);
+            stack.push(new Coordinates(i, j));
           }
 
           if (this.maze[i][j] === CellToNumber[Cell.Treasure])
             availableTreasures += 1;
 
-          visitedPositions.add(coordsToString([i, j]));
+          visitedPositions.add(Coordinates.toString(i, j));
         }
       }
     }
@@ -161,9 +160,7 @@ export class Maze {
       // It's impossible but still need to check
       if (path.length === 0)
         throw new Error(
-          `Impossible to find path to reachable item ${
-            item[0]
-          } at ${coordsToString(item[1])}`
+          `Impossible to find path to reachable item ${item[0]} at ${item[1]}`
         );
 
       if (path.length < closestPath) {
@@ -175,8 +172,33 @@ export class Maze {
     return closestItem!;
   }
 
-  private collectAndGoTo(item: ReachableItem) {
-    
+  private makeCellEmpty(position: Coordinates) {
+    this.maze[position.i][position.j] = CellToNumber[Cell.Empty];
+  }
+
+  // by default we need to collect all the keys and all the treasures
+  private eatKeyOrTreasure(item: ReachableItem) {
+    const [cellValue, position] = item;
+
+    const isCellKey = isKey(cellValue);
+    const isCellTreasure = cellValue === Cell.Treasure;
+
+    if (!isCellKey && !isCellTreasure)
+      throw new Error(`We try to eat some weird cell: ${cellValue}`);
+
+    console.log(`Eating: ${cellValue} at ${position}`);
+
+    if (isKey(cellValue)) {
+      const relatedDoorPosition = this.positionResolver.getPosition(
+        // TODO refactor this line
+        // probably we don't need to store doors and keys inside Cell
+        CellToNumber[Cell[cellValue.toUpperCase()]]
+      );
+
+      this.makeCellEmpty(relatedDoorPosition);
+    }
+
+    this.makeCellEmpty(position);
   }
 
   getPosition(cell: CellValue): Coordinates {
@@ -187,19 +209,26 @@ export class Maze {
     const graph = new Graph(this.maze);
 
     return astar
-      .search(graph, graph.grid[from[0]][from[1]], graph.grid[to[0]][to[1]])
+      .search(graph, graph.grid[from.i][from.j], graph.grid[to.i][to.j])
       .map(Maze.gridNodeToCoordinates);
   }
 
   solve(playerPosition: Coordinates) {
     let currentPosition = playerPosition;
-    const reachableItems = this.findReachableItems(playerPosition);
+    let reachableItems = this.findReachableItems(playerPosition);
 
     while (reachableItems.length > 0) {
       const closestItem = this.findClosestItem(currentPosition, reachableItems);
 
       if (closestItem === null)
         throw new Error("The closest item is null => what???");
+
+      this.eatKeyOrTreasure(closestItem);
+
+      // go to item position
+      currentPosition = closestItem[1];
+      // Scan for reachable items again
+      reachableItems = this.findReachableItems(currentPosition);
     }
   }
 }
