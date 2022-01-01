@@ -1,0 +1,1 @@
+deno run --allow-read --config ./tsconfig.json ./main.ts
