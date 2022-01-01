@@ -1,25 +1,66 @@
-import "./types.ts";
 import "./external/astar.js";
 
-import { Cell } from "./constants.ts";
 import { Maze } from "./maze.ts";
-
+import { XennialConverter } from "./models/XennialConverter.ts";
 import { Coordinates } from "./models/Coordinates.ts";
 
-const decoder = new TextDecoder("utf-8");
-const mazeRawStrings = decoder
-  .decode(Deno.readFileSync("./data/maze.txt"))
-  .replaceAll("\r", "")
-  .split("\n");
+const MAZE_FILE_NAME = "./data/maze.txt";
+const RESULT_PATH_FILE_NAME = "./data/result-path.txt";
+const XENNIAL_FILE_NAME = "./data/xennial.txt";
 
-const maze = new Maze(mazeRawStrings);
-const playerPosition = maze.getPosition(Cell.Player);
+const CONVERT_RESULTS = true;
+const WRITE_SEQUENCE_TO_FILE = CONVERT_RESULTS || false;
+const NEED_TO_SOLVE = WRITE_SEQUENCE_TO_FILE || false;
 
-const sequence = maze.solve(playerPosition);
+const PLAYER_POSITION = new Coordinates(1, 1);
 
-let resultPath: Coordinates[] = [];
-sequence.forEach((item) => {
-  resultPath = resultPath.concat(item.path);
-});
+const encoder = new TextEncoder();
 
-console.log("Result path length is: ", resultPath.length);
+const writeResultsTo = async (strings: string[], filename: string) => {
+  const file = await Deno.open(filename, { write: true });
+
+  strings.forEach((position) =>
+    Deno.writeSync(file.rid, encoder.encode(position.toString() + "\r\n"))
+  );
+
+  file.close();
+};
+
+if (NEED_TO_SOLVE) {
+  const decoder = new TextDecoder("utf-8");
+  const mazeRawStrings = decoder
+    .decode(Deno.readFileSync(MAZE_FILE_NAME))
+    .replaceAll("\r", "")
+    .split("\n");
+  const maze = new Maze(mazeRawStrings);
+  const sequence = maze.solve(PLAYER_POSITION);
+
+  if (WRITE_SEQUENCE_TO_FILE) {
+    const pathStrings: string[] = [];
+    let resultPath: Coordinates[] = [];
+
+    let totalPathLength = 0;
+
+    for (const item of sequence) {
+      totalPathLength += item.path.length;
+      resultPath = resultPath.concat(item.path);
+
+      item.path.forEach((position) => {
+        pathStrings.push(position.toString());
+      });
+    }
+
+    console.log("Total path length: ", totalPathLength);
+
+    await writeResultsTo(pathStrings, RESULT_PATH_FILE_NAME);
+
+    if (CONVERT_RESULTS) {
+      const converter = new XennialConverter(3000, PLAYER_POSITION, true);
+      const xennialStrings = converter.convertPath(resultPath);
+
+      await writeResultsTo(xennialStrings, XENNIAL_FILE_NAME);
+
+      console.log("Total xennial commands: ", xennialStrings.length);
+    }
+  }
+}

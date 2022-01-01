@@ -3,7 +3,7 @@ import { Position } from "./position.ts";
 import { isKey, isDoor } from "./utils.ts";
 import { Coordinates } from "./models/Coordinates.ts";
 
-import type { Key, CellValue } from "./types.ts";
+import type { CellValue, SequencePath } from "./types.ts";
 
 type ReachableItem = {
   cellValue: CellValue;
@@ -13,11 +13,6 @@ type ReachableItem = {
 type ReachableItemWithPath = ReachableItem & {
   path: Coordinates[];
 };
-
-type SequencePath = {
-  cell: CellValue;
-  path: Coordinates[];
-}[];
 
 export class Maze {
   static gridNodeToCoordinates(node: GridNode): Coordinates {
@@ -239,7 +234,7 @@ export class Maze {
       reachableItems = this.findReachableItems(currentPosition);
     }
 
-    console.log('Going to exit...')
+    console.log("Going to exit...");
     // Here we collected all the items, so now we need to go to the exit
     this.revealExit();
 
