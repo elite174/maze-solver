@@ -36,6 +36,8 @@ export class XennialConverter {
   }
 
   convertPath(path: Coordinates[]): string[] {
+    console.log('Converting...');
+
     const instructions: string[] = [];
 
     let direction: Direction | null = null;
@@ -78,14 +80,9 @@ export class XennialConverter {
       this.currentPosition = position;
     }
 
-    if (this.sameDirectionCount > 0) {
-      instructions.push(
-        this.getInstruction(this.currentDirection, this.sameDirectionCount)
-      );
-    }
-
-    console.log("Total instructions: ", instructions.length);
-    console.log(this.targetPosition);
+    instructions.push(
+      this.getInstruction(this.currentDirection, this.sameDirectionCount)
+    );
 
     return instructions;
   }

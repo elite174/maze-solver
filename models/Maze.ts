@@ -1,9 +1,9 @@
-import { CellToNumber, Cell, NumberToCell } from "./constants.ts";
-import { Position } from "./position.ts";
-import { isKey, isDoor } from "./utils.ts";
-import { Coordinates } from "./models/Coordinates.ts";
+import { CellToNumber, Cell, NumberToCell } from "../constants.ts";
+import { PositionResolver } from "./PositionResolver.ts";
+import { isKey, isDoor } from "../utils.ts";
+import { Coordinates } from "./Coordinates.ts";
 
-import type { CellValue, SequencePath } from "./types.ts";
+import type { CellValue, SequencePath } from "../types.ts";
 
 type ReachableItem = {
   cellValue: CellValue;
@@ -21,12 +21,12 @@ export class Maze {
 
   private maze: number[][] = [];
 
-  private positionResolver: Position;
+  private positionResolver: PositionResolver;
 
   constructor(private mazeRawStrings: string[]) {
     this.constructMaze();
 
-    this.positionResolver = new Position(mazeRawStrings);
+    this.positionResolver = new PositionResolver(mazeRawStrings);
   }
 
   private transformCellToNumber(cellValue: CellValue): number {
@@ -50,22 +50,18 @@ export class Maze {
   private constructMaze() {
     this.maze = [];
 
-    let totalTr = 0;
     for (const mazeRow of this.mazeRawStrings) {
       const mazeRowData: number[] = [];
 
       for (const cellValue of mazeRow) {
-        if (cellValue === "$") totalTr += 1;
         mazeRowData.push(this.transformCellToNumber(cellValue as CellValue));
       }
 
       this.maze.push(mazeRowData);
     }
-    console.log("Total treasures: ", totalTr);
-    console.log("Constructing maze... Done");
   }
 
-  findReachableItems(position: Coordinates): ReachableItem[] {
+  private findReachableItems(position: Coordinates): ReachableItem[] {
     const result: ReachableItem[] = [];
 
     const visitedPositions: Set<string> = new Set();
@@ -111,10 +107,6 @@ export class Maze {
       }
     }
 
-    console.log(
-      "Reachable items: ",
-      result.map((item) => item.cellValue).join(", ")
-    );
     return result;
   }
 
@@ -142,14 +134,12 @@ export class Maze {
       }
     }
 
-    //console.log("Closest item is: ", closestItem!.cellValue);
     return closestItem!;
   }
 
   private makeCellEmpty(position: Coordinates) {
     this.maze[position.i][position.j] = CellToNumber[Cell.Empty];
   }
-  private tr = 0;
 
   // by default we need to collect all the keys and all the treasures
   private eatKeyOrTreasure(item: ReachableItem) {
@@ -161,8 +151,6 @@ export class Maze {
     if (!isCellKey && !isCellTreasure)
       throw new Error(`We try to eat some weird cell: ${cellValue}`);
 
-    console.log(`Eating: ${cellValue} at ${position}`);
-
     if (isKey(cellValue)) {
       const relatedDoorPosition = this.positionResolver.getPosition(
         // TODO refactor this line
@@ -171,10 +159,6 @@ export class Maze {
       );
 
       this.makeCellEmpty(relatedDoorPosition);
-    }
-
-    if (isCellTreasure) {
-      this.tr += 1;
     }
 
     this.makeCellEmpty(position);
@@ -187,11 +171,7 @@ export class Maze {
     this.maze[i][j] = CellToNumber[Cell.Exit];
   }
 
-  getPosition(cell: CellValue): Coordinates {
-    return this.positionResolver.getPosition(CellToNumber[cell]);
-  }
-
-  searchPath(from: Coordinates, to: Coordinates): Coordinates[] {
+  private searchPath(from: Coordinates, to: Coordinates): Coordinates[] {
     const graph = new Graph(this.maze);
 
     return astar
@@ -201,6 +181,8 @@ export class Maze {
 
   // Return sequence doesn't include the starting position of the player
   solve(playerPosition: Coordinates): SequencePath {
+    console.log('Solving the maze...');
+  
     const sequencePath: SequencePath = [];
 
     let currentPosition = playerPosition;
@@ -230,7 +212,6 @@ export class Maze {
       reachableItems = this.findReachableItems(currentPosition);
     }
 
-    console.log("Going to exit...");
     // Here we collected all the items, so now we need to go to the exit
     this.revealExit();
 
@@ -244,7 +225,7 @@ export class Maze {
       path: pathToExit,
     });
 
-    console.log("TER:", this.tr);
+    console.log('Maze solved!');
     return sequencePath;
   }
 }

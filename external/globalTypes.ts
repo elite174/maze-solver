@@ -1,11 +1,6 @@
 declare type GridNode = {
   x: number;
   y: number;
-  weight: number;
-  parent?: GridNode;
-  isWall(): boolean;
-  getCost(): number;
-  toString(): string;
 };
 
 declare class Graph {
@@ -14,18 +9,7 @@ declare class Graph {
 }
 
 type Astar = {
-  heuristics: {
-    diagonal: boolean;
-    manhattan: boolean;
-  };
-  search: (
-    graph: Graph,
-    start: GridNode,
-    end: GridNode,
-    options?: {
-      heuristic: boolean;
-    }
-  ) => GridNode[];
+  search: (graph: Graph, start: GridNode, end: GridNode) => GridNode[];
 };
 
 declare var astar: Astar;

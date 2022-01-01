@@ -1,12 +1,14 @@
-import { Coordinates } from "./models/Coordinates.ts";
-import { NumberToCell } from "./constants.ts";
+import { Coordinates } from "./Coordinates.ts";
+import { NumberToCell } from "../constants.ts";
 
-export class Position {
+export class PositionResolver {
   private positionCache: Map<number, Coordinates> = new Map();
 
   constructor(private mazeRawStrings: string[]) {}
 
-  getPosition(value: number): Coordinates {
+  getPosition(value: number | undefined): Coordinates {
+    if (value === undefined) throw new Error("Unexpected input value");
+  
     if (this.positionCache.has(value)) {
       return this.positionCache.get(value)!;
     }
