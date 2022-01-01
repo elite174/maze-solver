@@ -3,9 +3,17 @@ import { Position } from "./position.ts";
 import { isKey, isDoor } from "./utils.ts";
 import { Coordinates } from "./models/Coordinates.ts";
 
-import type { Key, Door, CellValue } from "./types.ts";
+import type { Key, CellValue } from "./types.ts";
 
-type ReachableItem = [CellValue, Coordinates];
+type ReachableItem = {
+  cellValue: CellValue;
+  position: Coordinates;
+};
+
+type SequencePath = {
+  cell: CellValue;
+  path: Coordinates[];
+}[];
 
 export class Maze {
   static gridNodeToCoordinates(node: GridNode): Coordinates {
@@ -106,10 +114,11 @@ export class Maze {
         this.maze[currentPosition.i][currentPosition.j] !==
         CellToNumber[Cell.Empty]
       ) {
-        result.push([
-          NumberToCell[this.maze[currentPosition.i][currentPosition.j]],
-          currentPosition,
-        ]);
+        result.push({
+          cellValue:
+            NumberToCell[this.maze[currentPosition.i][currentPosition.j]],
+          position: currentPosition,
+        });
       }
 
       visitedPositions.add(currentPosition.toString());
@@ -155,12 +164,12 @@ export class Maze {
     let closestPath = Infinity;
 
     for (const item of reachableItems) {
-      const path = this.searchPath(currentPosition, item[1]);
+      const path = this.searchPath(currentPosition, item.position);
 
       // It's impossible but still need to check
       if (path.length === 0)
         throw new Error(
-          `Impossible to find path to reachable item ${item[0]} at ${item[1]}`
+          `Impossible to find path to reachable item ${item.cellValue} at ${item.position}`
         );
 
       if (path.length < closestPath) {
@@ -178,7 +187,7 @@ export class Maze {
 
   // by default we need to collect all the keys and all the treasures
   private eatKeyOrTreasure(item: ReachableItem) {
-    const [cellValue, position] = item;
+    const { cellValue, position } = item;
 
     const isCellKey = isKey(cellValue);
     const isCellTreasure = cellValue === Cell.Treasure;
@@ -201,6 +210,13 @@ export class Maze {
     this.makeCellEmpty(position);
   }
 
+  // this method replaces a wall-placeholder for the exit to the real exit value
+  private revealExit() {
+    const { i, j } = this.positionResolver.getPosition(CellToNumber[Cell.Exit]);
+
+    this.maze[i][j] = CellToNumber[Cell.Exit];
+  }
+
   getPosition(cell: CellValue): Coordinates {
     return this.positionResolver.getPosition(CellToNumber[cell]);
   }
@@ -213,7 +229,9 @@ export class Maze {
       .map(Maze.gridNodeToCoordinates);
   }
 
-  solve(playerPosition: Coordinates) {
+  solve(playerPosition: Coordinates): SequencePath {
+    const sequencePath: SequencePath = [];
+
     let currentPosition = playerPosition;
     let reachableItems = this.findReachableItems(playerPosition);
 
@@ -226,9 +244,14 @@ export class Maze {
       this.eatKeyOrTreasure(closestItem);
 
       // go to item position
-      currentPosition = closestItem[1];
+      currentPosition = closestItem.position;
       // Scan for reachable items again
       reachableItems = this.findReachableItems(currentPosition);
     }
+
+    // Here we collected all the items, so now we need to go to the exit
+    this.revealExit();
+
+    return sequencePath;
   }
 }
