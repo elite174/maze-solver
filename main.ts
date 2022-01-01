@@ -14,8 +14,9 @@ const mazeRawStrings = decoder
 
 const maze = new Maze(mazeRawStrings);
 const playerPosition = maze.getPosition(Cell.Player);
-const exitPosition = maze.getPosition(Cell.Exit);
-const someTreasurePosition = maze.getPosition(Cell.Treasure);
+//const exitPosition = maze.getPosition(Cell.Exit);
+//const someTreasurePosition = maze.getPosition(Cell.Treasure);
 
+maze.solve(playerPosition);
 //console.log(maze.findReachableItems([1, 1]));
-console.log(maze.searchPath(playerPosition, new Coordinates(1, 3)));
+//console.log(maze.searchPath(playerPosition, new Coordinates(1, 3)));

@@ -26,11 +26,7 @@ export class Maze {
 
   private treasureCount = 0;
 
-  private allThingsCollected = false;
-
   private maze: number[][] = [];
-
-  private collectedKeys: Set<Key> = new Set();
 
   private positionResolver: Position;
 
@@ -47,28 +43,13 @@ export class Maze {
 
     // we need to transform doors into walls of empty cells
     if (isDoor(cellValue)) {
-      // if we have key
-      if (this.collectedKeys.has(cellValue.toLowerCase() as Key)) {
-        // pretend that there's no wall
-        return CellToNumber[Cell.Empty];
-      } else {
-        // door is a wall
-        return CellToNumber[Cell.Wall];
-      }
-    }
-
-    // if we collected a key return empty cell
-    if (isKey(cellValue)) {
-      if (this.collectedKeys.has(cellValue as Key)) {
-        return CellToNumber[Cell.Empty];
-      }
-    }
-
-    // If we haven't collected all the things, we need to mark exit as wall
-    // This prevents from unexpected exit
-    if (cellValue === Cell.Exit && !this.allThingsCollected) {
+      // door is a wall at the start
       return CellToNumber[Cell.Wall];
     }
+
+    // Hide exit and player at the beginning
+    if (cellValue === Cell.Exit) return CellToNumber[Cell.Wall];
+    if (cellValue === Cell.Player) return CellToNumber[Cell.Empty];
 
     return CellToNumber[cellValue];
   }
@@ -87,19 +68,8 @@ export class Maze {
 
       this.maze.push(mazeRowData);
     }
-  }
 
-  // in case we collect key we need to mark key cell and door cell as empty cells
-  collectKey(key: Key) {
-    this.collectedKeys.add(key);
-
-    const keyPosition = this.positionResolver.getPosition(CellToNumber[key]);
-    const doorPosition = this.positionResolver.getPosition(
-      CellToNumber[Cell[key.toUpperCase()]]
-    );
-
-    this.maze[keyPosition.i][keyPosition.j] = CellToNumber[Cell.Empty];
-    this.maze[doorPosition.i][doorPosition.j] = CellToNumber[Cell.Empty];
+    console.log("Constructing maze... Done");
   }
 
   findReachableItems(position: Coordinates): ReachableItem[] {
@@ -154,7 +124,11 @@ export class Maze {
       }
     }
 
-    console.log("available treasures: ", availableTreasures);
+    console.log(
+      "Reachable items: ",
+      result.map((item) => item.cellValue).join(", ")
+    );
+    console.log("Available treasures: ", availableTreasures);
     return result;
   }
 
@@ -182,6 +156,7 @@ export class Maze {
       }
     }
 
+    console.log("Closest item is: ", closestItem!.cellValue);
     return closestItem!;
   }
 
@@ -239,6 +214,11 @@ export class Maze {
 
     let currentPosition = playerPosition;
     let reachableItems = this.findReachableItems(playerPosition);
+
+    if (reachableItems.length === 0)
+      throw new Error(
+        `Something goes wrong, because we can't reach any item from the start...`
+      );
 
     while (reachableItems.length > 0) {
       const closestItem = this.findClosestItem(currentPosition, reachableItems);
