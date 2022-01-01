@@ -19,8 +19,6 @@ export class Maze {
     return new Coordinates(node.x, node.y);
   }
 
-  private treasureCount = 0;
-
   private maze: number[][] = [];
 
   private positionResolver: Position;
@@ -52,18 +50,18 @@ export class Maze {
   private constructMaze() {
     this.maze = [];
 
+    let totalTr = 0;
     for (const mazeRow of this.mazeRawStrings) {
       const mazeRowData: number[] = [];
 
       for (const cellValue of mazeRow) {
-        if (cellValue === Cell.Treasure) this.treasureCount += 1;
-
+        if (cellValue === "$") totalTr += 1;
         mazeRowData.push(this.transformCellToNumber(cellValue as CellValue));
       }
 
       this.maze.push(mazeRowData);
     }
-
+    console.log("Total treasures: ", totalTr);
     console.log("Constructing maze... Done");
   }
 
@@ -72,8 +70,6 @@ export class Maze {
 
     const visitedPositions: Set<string> = new Set();
     const stack = [position];
-
-    let availableTreasures = 0;
 
     while (stack.length > 0) {
       const currentPosition = stack.pop()!;
@@ -109,12 +105,8 @@ export class Maze {
             !visitedPositions.has(Coordinates.toString(i, j))
           ) {
             stack.push(new Coordinates(i, j));
+            visitedPositions.add(Coordinates.toString(i, j));
           }
-
-          if (this.maze[i][j] === CellToNumber[Cell.Treasure])
-            availableTreasures += 1;
-
-          visitedPositions.add(Coordinates.toString(i, j));
         }
       }
     }
@@ -123,7 +115,6 @@ export class Maze {
       "Reachable items: ",
       result.map((item) => item.cellValue).join(", ")
     );
-    console.log("Available treasures: ", availableTreasures);
     return result;
   }
 
@@ -151,13 +142,14 @@ export class Maze {
       }
     }
 
-    console.log("Closest item is: ", closestItem!.cellValue);
+    //console.log("Closest item is: ", closestItem!.cellValue);
     return closestItem!;
   }
 
   private makeCellEmpty(position: Coordinates) {
     this.maze[position.i][position.j] = CellToNumber[Cell.Empty];
   }
+  private tr = 0;
 
   // by default we need to collect all the keys and all the treasures
   private eatKeyOrTreasure(item: ReachableItem) {
@@ -179,6 +171,10 @@ export class Maze {
       );
 
       this.makeCellEmpty(relatedDoorPosition);
+    }
+
+    if (isCellTreasure) {
+      this.tr += 1;
     }
 
     this.makeCellEmpty(position);
@@ -248,6 +244,7 @@ export class Maze {
       path: pathToExit,
     });
 
+    console.log("TER:", this.tr);
     return sequencePath;
   }
 }

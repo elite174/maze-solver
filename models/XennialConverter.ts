@@ -1,4 +1,4 @@
-import type { Coordinates } from "./Coordinates.ts";
+import { Coordinates } from "./Coordinates.ts";
 
 const enum Direction {
   Right = 0,
@@ -23,6 +23,8 @@ export class XennialConverter {
 
   private sameDirectionCount = 0;
 
+  private targetPosition: Coordinates;
+
   constructor(
     initialLineNumber: number,
     initialPosition: Coordinates,
@@ -30,6 +32,7 @@ export class XennialConverter {
   ) {
     this.currentPosition = initialPosition;
     this.currentLineNumber = initialLineNumber;
+    this.targetPosition = new Coordinates(initialPosition.i, initialPosition.j);
   }
 
   convertPath(path: Coordinates[]): string[] {
@@ -82,6 +85,7 @@ export class XennialConverter {
     }
 
     console.log("Total instructions: ", instructions.length);
+    console.log(this.targetPosition);
 
     return instructions;
   }
@@ -89,13 +93,9 @@ export class XennialConverter {
   private getInstruction(direction: Direction | null, stepsCount: number) {
     if (direction === null) throw new Error("current direction is null");
 
-    return stepsCount === 1
-      ? `${this.currentLineNumber++} POKE 0,${direction}${
-          this.withComments ? `: REM ${directionToString[direction]}` : ""
-        }`
-      : `${this
-          .currentLineNumber++} FOR X = 1 to ${stepsCount}: POKE 0,${direction}: NEXT X${
-          this.withComments ? `: REM ${directionToString[direction]}` : ""
-        }`;
+    return `${this
+      .currentLineNumber++} POKE c,CX+1:POKE e,${stepsCount}:POKE 0,${direction}:RETURN${
+      this.withComments ? `: REM ${directionToString[direction]}` : ""
+    }`;
   }
 }

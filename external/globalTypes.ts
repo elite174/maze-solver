@@ -6,7 +6,7 @@ declare type GridNode = {
   isWall(): boolean;
   getCost(): number;
   toString(): string;
-}
+};
 
 declare class Graph {
   constructor(data: number[][]);
@@ -14,8 +14,18 @@ declare class Graph {
 }
 
 type Astar = {
-  search: (graph: Graph, start: GridNode, end: GridNode) => GridNode[];
+  heuristics: {
+    diagonal: boolean;
+    manhattan: boolean;
+  };
+  search: (
+    graph: Graph,
+    start: GridNode,
+    end: GridNode,
+    options?: {
+      heuristic: boolean;
+    }
+  ) => GridNode[];
 };
 
 declare var astar: Astar;
-

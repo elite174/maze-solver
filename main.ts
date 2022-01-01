@@ -3,6 +3,7 @@ import "./external/astar.js";
 import { Maze } from "./maze.ts";
 import { XennialConverter } from "./models/XennialConverter.ts";
 import { Coordinates } from "./models/Coordinates.ts";
+import {Cell} from './constants.ts'
 
 const MAZE_FILE_NAME = "./data/maze.txt";
 const RESULT_PATH_FILE_NAME = "./data/result-path.txt";
@@ -34,6 +35,7 @@ if (NEED_TO_SOLVE) {
     .split("\n");
   const maze = new Maze(mazeRawStrings);
   const sequence = maze.solve(PLAYER_POSITION);
+  console.log('exit: ', maze.getPosition(Cell.Exit));
 
   if (WRITE_SEQUENCE_TO_FILE) {
     const pathStrings: string[] = [];
@@ -55,7 +57,7 @@ if (NEED_TO_SOLVE) {
     await writeResultsTo(pathStrings, RESULT_PATH_FILE_NAME);
 
     if (CONVERT_RESULTS) {
-      const converter = new XennialConverter(3000, PLAYER_POSITION, true);
+      const converter = new XennialConverter(3050, PLAYER_POSITION);
       const xennialStrings = converter.convertPath(resultPath);
 
       await writeResultsTo(xennialStrings, XENNIAL_FILE_NAME);
