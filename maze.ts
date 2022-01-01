@@ -10,6 +10,10 @@ type ReachableItem = {
   position: Coordinates;
 };
 
+type ReachableItemWithPath = ReachableItem & {
+  path: Coordinates[];
+};
+
 type SequencePath = {
   cell: CellValue;
   path: Coordinates[];
@@ -94,8 +98,8 @@ export class Maze {
       CellToNumber[Cell[key.toUpperCase()]]
     );
 
-    this.maze[keyPosition[0]][keyPosition[1]] = CellToNumber[Cell.Empty];
-    this.maze[doorPosition[0]][doorPosition[1]] = CellToNumber[Cell.Empty];
+    this.maze[keyPosition.i][keyPosition.j] = CellToNumber[Cell.Empty];
+    this.maze[doorPosition.i][doorPosition.j] = CellToNumber[Cell.Empty];
   }
 
   findReachableItems(position: Coordinates): ReachableItem[] {
@@ -157,10 +161,10 @@ export class Maze {
   private findClosestItem(
     currentPosition: Coordinates,
     reachableItems: ReachableItem[]
-  ): ReachableItem | null {
+  ): ReachableItemWithPath | null {
     if (reachableItems.length === 0) return null;
 
-    let closestItem: ReachableItem;
+    let closestItem: ReachableItemWithPath;
     let closestPath = Infinity;
 
     for (const item of reachableItems) {
@@ -174,7 +178,7 @@ export class Maze {
 
       if (path.length < closestPath) {
         closestPath = path.length;
-        closestItem = item;
+        closestItem = { ...item, path };
       }
     }
 
@@ -229,6 +233,7 @@ export class Maze {
       .map(Maze.gridNodeToCoordinates);
   }
 
+  // Return sequence doesn't include the starting position of the player
   solve(playerPosition: Coordinates): SequencePath {
     const sequencePath: SequencePath = [];
 
@@ -241,6 +246,11 @@ export class Maze {
       if (closestItem === null)
         throw new Error("The closest item is null => what???");
 
+      sequencePath.push({
+        cell: closestItem.cellValue,
+        path: closestItem.path,
+      });
+
       this.eatKeyOrTreasure(closestItem);
 
       // go to item position
@@ -251,6 +261,16 @@ export class Maze {
 
     // Here we collected all the items, so now we need to go to the exit
     this.revealExit();
+
+    const pathToExit = this.searchPath(
+      currentPosition,
+      this.positionResolver.getPosition(CellToNumber[Cell.Exit])
+    );
+
+    sequencePath.push({
+      cell: Cell.Exit,
+      path: pathToExit,
+    });
 
     return sequencePath;
   }

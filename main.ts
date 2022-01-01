@@ -17,6 +17,5 @@ const playerPosition = maze.getPosition(Cell.Player);
 const exitPosition = maze.getPosition(Cell.Exit);
 const someTreasurePosition = maze.getPosition(Cell.Treasure);
 
-
 //console.log(maze.findReachableItems([1, 1]));
-//console.log(maze.searchPath(playerPosition, [47, 5]));
+console.log(maze.searchPath(playerPosition, new Coordinates(1, 3)));

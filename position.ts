@@ -1,4 +1,4 @@
-import type { Coordinates } from "./types.ts";
+import { Coordinates } from "./models/Coordinates.ts";
 import { NumberToCell } from "./constants.ts";
 
 export class Position {
@@ -19,9 +19,11 @@ export class Position {
           );
 
         if (this.mazeRawStrings[i][j] === NumberToCell[value]) {
-          this.positionCache.set(value, [i, j]);
+          const position = new Coordinates(i, j);
 
-          return [i, j];
+          this.positionCache.set(value, position);
+
+          return position;
         }
       }
     }
