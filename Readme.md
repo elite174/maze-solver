@@ -1,5 +1,6 @@
 # Maze solver
 
+For this task I used Deno (because I love to play with new stuff :) )
 To solve the task I used A* algorithm to find optimal path inside the maze.
 
 ## Solving the maze
