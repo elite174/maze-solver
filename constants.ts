@@ -37,3 +37,11 @@ Object.entries(CellToNumber).forEach(([key, value]) => {
 
 export const keySet = new Set(keys);
 export const doorSet = new Set(doors);
+
+export const currentXOffset = `16+width*height+1`;
+export const endOffset = "16+width*height+2";
+export const li0Offset = `16+width*height+3`;
+export const li1Offset = `16+width*height+4`;
+export const flagOffset = `16+width*height+5`
+export const currentX = `PEEK(${currentXOffset})`;
+export const endX = `PEEK(${endOffset})`;

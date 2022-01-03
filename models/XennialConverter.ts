@@ -1,4 +1,5 @@
 import { Coordinates } from "./Coordinates.ts";
+import { currentXOffset, endOffset } from "../constants.ts";
 
 const enum Direction {
   Right = 0,
@@ -88,8 +89,6 @@ export class XennialConverter {
     if (direction === null) throw new Error("current direction is null");
 
     return `${this
-      .currentLineNumber++} POKE c,CX+1:POKE e,${stepsCount}:POKE 0,${direction}:RETURN${
-      this.withComments ? `: REM ${directionToString[direction]}` : ""
-    }`;
+      .currentLineNumber++} POKE ${endOffset},${stepsCount}:POKE 0,${direction}:RETURN`;
   }
 }
