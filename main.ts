@@ -50,16 +50,16 @@ const mazeRawStrings = decoder
   .decode(Deno.readFileSync(MAZE_FILE_NAME))
   .replaceAll("\r", "")
   .split("\n");
-const maze = new Maze(mazeRawStrings);
-const sequence = maze.solve(PLAYER_POSITION);
+
+const maze = new Maze(mazeRawStrings, 90);
+const [sequence, pathLength] = maze.solve(PLAYER_POSITION);
+
+console.log(`Total path length: ${pathLength}`);
 
 const pathStrings: string[] = [];
 let resultPath: Coordinates[] = [];
 
-let totalPathLength = 0;
-
 for (const item of sequence) {
-  totalPathLength += item.path.length;
   resultPath = resultPath.concat(item.path);
 
   item.path.forEach((position) => {

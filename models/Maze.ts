@@ -23,7 +23,9 @@ export class Maze {
 
   private positionResolver: PositionResolver;
 
-  constructor(private mazeRawStrings: string[]) {
+  private pathCache: Map<string, Coordinates[]> = new Map();
+
+  constructor(private mazeRawStrings: string[], private lookingRadius = 90) {
     this.constructMaze();
 
     this.positionResolver = new PositionResolver(mazeRawStrings);
@@ -179,11 +181,29 @@ export class Maze {
       .map(Maze.gridNodeToCoordinates);
   }
 
+  private getItemsInRadius(
+    currentPosition: Coordinates,
+    items: ReachableItem[]
+  ): ReachableItemWithPath[] {
+    const result: ReachableItemWithPath[] = [];
+
+    for (const item of items) {
+      const path = this.searchPath(currentPosition, item.position);
+
+      if (path.length <= this.lookingRadius) {
+        result.push({ ...item, path });
+      }
+    }
+
+    return result;
+  }
+
   // Return sequence doesn't include the starting position of the player
-  solve(playerPosition: Coordinates): SequencePath {
-    console.log('Solving the maze...');
-  
+  solve(playerPosition: Coordinates): [SequencePath, number] {
+    console.log("Solving the maze...");
+
     const sequencePath: SequencePath = [];
+    let pathLength = 0;
 
     let currentPosition = playerPosition;
     let reachableItems = this.findReachableItems(playerPosition);
@@ -194,7 +214,31 @@ export class Maze {
       );
 
     while (reachableItems.length > 0) {
-      const closestItem = this.findClosestItem(currentPosition, reachableItems);
+      const itemsInRadius = this.getItemsInRadius(
+        currentPosition,
+        reachableItems
+      );
+
+      let closestItem: ReachableItemWithPath | null;
+
+      if (itemsInRadius.length > 0) {
+        closestItem = itemsInRadius[0];
+
+        for (let i = 1; i < itemsInRadius.length; i++) {
+          if (closestItem.path.length > itemsInRadius[i].path.length) {
+            closestItem = itemsInRadius[i];
+          }
+        }
+      } else {
+        const reachableKeys = reachableItems.filter((item) =>
+          isKey(item.cellValue)
+        );
+
+        closestItem = this.findClosestItem(
+          currentPosition,
+          reachableKeys.length > 0 ? reachableKeys : reachableItems
+        );
+      }
 
       if (closestItem === null)
         throw new Error("The closest item is null => what???");
@@ -203,6 +247,8 @@ export class Maze {
         cell: closestItem.cellValue,
         path: closestItem.path,
       });
+
+      pathLength += closestItem.path.length;
 
       this.eatKeyOrTreasure(closestItem);
 
@@ -225,7 +271,9 @@ export class Maze {
       path: pathToExit,
     });
 
-    console.log('Maze solved!');
-    return sequencePath;
+    pathLength += pathToExit.length;
+
+    console.log("Maze solved!");
+    return [sequencePath, pathLength];
   }
 }
