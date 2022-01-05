@@ -1,31 +1,42 @@
 import { CellToNumber, Cell, NumberToCell } from "../constants.ts";
 import { PositionResolver } from "./PositionResolver.ts";
-import { isKey, isDoor } from "../utils.ts";
+import { isKey, isDoor, gridNodeToCoordinates } from "../utils.ts";
 import { Coordinates } from "./Coordinates.ts";
 
-import type { CellValue, SequencePath } from "../types.ts";
+import type {
+  CellValue,
+  SequencePath,
+  ReachableItem,
+  ReachableItemWithPath,
+} from "../types.ts";
 
-type ReachableItem = {
-  cellValue: CellValue;
-  position: Coordinates;
+type CC = {
+  emptyCellCount: number;
+  items: ReachableItem[];
 };
 
-type ReachableItemWithPath = ReachableItem & {
-  path: Coordinates[];
-};
+const pickRandom = <T>(items: T[]): T =>
+  items[0 + Math.floor(Math.random() * items.length)];
 
+const getPathCacheKey = (from: Coordinates, to: Coordinates) => `${from}:${to}`;
+
+const getItemsCacheKey = (from: Coordinates, keys: string) =>
+  `${from}: ${keys}`;
 export class Maze {
-  static gridNodeToCoordinates(node: GridNode): Coordinates {
-    return new Coordinates(node.x, node.y);
-  }
-
   private maze: number[][] = [];
 
   private positionResolver: PositionResolver;
 
-  private pathCache: Map<string, Coordinates[]> = new Map();
+  private collectedKeys: string = "";
 
-  constructor(private mazeRawStrings: string[], private lookingRadius = 90) {
+  constructor(
+    private mazeRawStrings: string[],
+    private pathCache: Map<string, Coordinates[]>,
+    private reachableItemsCache: Map<string, ReachableItem[]>,
+    private pickKeyChance: number,
+    private pickClosestChance: number,
+    private lookingRadius = 90
+  ) {
     this.constructMaze();
 
     this.positionResolver = new PositionResolver(mazeRawStrings);
@@ -63,7 +74,102 @@ export class Maze {
     }
   }
 
+  findConnectedComponents() {
+    const emptyCellSet: Set<string> = new Set();
+
+    for (let i = 0; i < this.mazeRawStrings.length; i++) {
+      for (let j = 0; j < this.mazeRawStrings[i].length; j++) {
+        if (this.mazeRawStrings[i][j] === Cell.Empty) {
+          emptyCellSet.add(Coordinates.toString(i, j));
+        }
+      }
+    }
+
+    console.log("Empty cells added");
+
+    const connectedComponents: CC[] = [];
+
+    while (emptyCellSet.size > 0) {
+      const result: CC = { emptyCellCount: 0, items: [] };
+
+      const visitedPositions: Set<string> = new Set();
+      const stack: Coordinates[] = [
+        Coordinates.fromString(emptyCellSet.values().next().value as string),
+      ];
+
+      console.log(`start: ${stack[0]}`);
+
+      while (stack.length > 0) {
+        const currentPosition = stack.pop()!;
+
+        // If current cell is unusual, add to result
+        if (
+          this.mazeRawStrings[currentPosition.i][currentPosition.j] ===
+          Cell.Empty
+        ) {
+          result.emptyCellCount += 1;
+          emptyCellSet.delete(currentPosition.toString());
+        } else {
+          result.items.push({
+            cellValue: this.mazeRawStrings[currentPosition.i][
+              currentPosition.j
+            ] as CellValue,
+            position: currentPosition,
+          });
+        }
+
+        visitedPositions.add(currentPosition.toString());
+
+        for (
+          let i = Math.max(0, currentPosition.i - 1);
+          i <= Math.min(this.maze.length, currentPosition.i + 1);
+          i++
+        ) {
+          for (
+            let j = Math.max(0, currentPosition.j - 1);
+            j <= Math.min(this.maze[i].length, currentPosition.j + 1);
+            j++
+          ) {
+            if (visitedPositions.has(Coordinates.toString(i, j))) continue;
+
+            if (isDoor(this.mazeRawStrings[i][j])) {
+              result.items.push({
+                cellValue: this.mazeRawStrings[i][j] as CellValue,
+                position: new Coordinates(i, j),
+              });
+
+              visitedPositions.add(Coordinates.toString(i, j));
+              continue;
+            }
+
+            if (
+              this.mazeRawStrings[i][j] !== Cell.Wall &&
+              !visitedPositions.has(Coordinates.toString(i, j))
+            ) {
+              stack.push(new Coordinates(i, j));
+              visitedPositions.add(Coordinates.toString(i, j));
+            }
+          }
+        }
+      }
+
+      connectedComponents.push(result);
+
+      console.log(`Connected component size: ${result.emptyCellCount}`);
+      console.log("  Items:");
+      result.items.forEach((item) =>
+        console.log(`    ${item.cellValue}: ${item.position.toString()}`)
+      );
+    }
+  }
+
   private findReachableItems(position: Coordinates): ReachableItem[] {
+    const key = getItemsCacheKey(position, this.collectedKeys);
+
+    if (this.reachableItemsCache.has(key)) {
+      return this.reachableItemsCache.get(key)!;
+    }
+
     const result: ReachableItem[] = [];
 
     const visitedPositions: Set<string> = new Set();
@@ -121,6 +227,8 @@ export class Maze {
     let closestItem: ReachableItemWithPath;
     let closestPath = Infinity;
 
+    let minItems: ReachableItemWithPath[] = [];
+
     for (const item of reachableItems) {
       const path = this.searchPath(currentPosition, item.position);
 
@@ -130,13 +238,17 @@ export class Maze {
           `Impossible to find path to reachable item ${item.cellValue} at ${item.position}`
         );
 
+      if (path.length === closestPath) {
+        minItems.push({ ...item, path });
+      }
+
       if (path.length < closestPath) {
         closestPath = path.length;
-        closestItem = { ...item, path };
+        minItems = [{ ...item, path }];
       }
     }
 
-    return closestItem!;
+    return pickRandom(minItems);
   }
 
   private makeCellEmpty(position: Coordinates) {
@@ -164,6 +276,9 @@ export class Maze {
     }
 
     this.makeCellEmpty(position);
+
+    this.collectedKeys += cellValue;
+    this.collectedKeys = this.collectedKeys.split("").sort().join("");
   }
 
   // this method replaces a wall-placeholder for the exit to the real exit value
@@ -174,11 +289,21 @@ export class Maze {
   }
 
   private searchPath(from: Coordinates, to: Coordinates): Coordinates[] {
+    const key = getPathCacheKey(from, to);
+
+    if (this.pathCache.has(key)) {
+      return this.pathCache.get(key)!;
+    }
+
     const graph = new Graph(this.maze);
 
-    return astar
+    const path = astar
       .search(graph, graph.grid[from.i][from.j], graph.grid[to.i][to.j])
-      .map(Maze.gridNodeToCoordinates);
+      .map(gridNodeToCoordinates);
+
+    this.pathCache.set(key, path);
+
+    return path;
   }
 
   private getItemsInRadius(
@@ -200,8 +325,6 @@ export class Maze {
 
   // Return sequence doesn't include the starting position of the player
   solve(playerPosition: Coordinates): [SequencePath, number] {
-    console.log("Solving the maze...");
-
     const sequencePath: SequencePath = [];
     let pathLength = 0;
 
@@ -230,13 +353,32 @@ export class Maze {
           }
         }
       } else {
-        const reachableKeys = reachableItems.filter((item) =>
-          isKey(item.cellValue)
-        );
+        const reachableKeys: ReachableItem[] = [];
+        const reachableTreasures: ReachableItem[] = [];
+
+        reachableItems.forEach((item) => {
+          if (isKey(item.cellValue)) {
+            reachableKeys.push(item);
+          } else {
+            reachableTreasures.push(item);
+          }
+        });
+
+        const chanceToPickKey =
+          reachableTreasures.length === 0
+            ? 1
+            : reachableKeys.length === 0
+            ? 0
+            : this.pickKeyChance;
+
+        const closest = Math.random() < this.pickClosestChance;
+
+        const items =
+          Math.random() < chanceToPickKey ? reachableKeys : reachableTreasures;
 
         closestItem = this.findClosestItem(
           currentPosition,
-          reachableKeys.length > 0 ? reachableKeys : reachableItems
+          closest ? items : [pickRandom(items)]
         );
       }
 
@@ -273,7 +415,6 @@ export class Maze {
 
     pathLength += pathToExit.length;
 
-    console.log("Maze solved!");
     return [sequencePath, pathLength];
   }
 }

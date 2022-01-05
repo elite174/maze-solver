@@ -1,1 +1,1 @@
-deno run --allow-read --allow-write --config ./tsconfig.json ./main.ts
+deno run --allow-read --allow-write -r --config ./tsconfig.json ./main.ts

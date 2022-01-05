@@ -8,3 +8,12 @@ export type SequencePath = {
   cell: CellValue;
   path: Coordinates[];
 }[];
+
+export type ReachableItem = {
+  cellValue: CellValue;
+  position: Coordinates;
+};
+
+export type ReachableItemWithPath = ReachableItem & {
+  path: Coordinates[];
+};

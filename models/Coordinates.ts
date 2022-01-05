@@ -7,6 +7,12 @@ export class Coordinates {
     return this.getStringRepresentation(i, j);
   }
 
+  static fromString(str: string): Coordinates {
+    const [i, j] = str.split("-");
+
+    return new Coordinates(Number(i), Number(j));
+  }
+
   constructor(public i: number, public j: number) {}
 
   toString() {

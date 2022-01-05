@@ -1,5 +1,6 @@
 import { keySet, doorSet } from "./constants.ts";
 import type { Key, Door } from "./types.ts";
+import { Coordinates } from "./models/Coordinates.ts";
 
 export const isKey = (cellValue: string): cellValue is Key =>
   keySet.has(cellValue);
@@ -27,3 +28,6 @@ export const writeResultsTo = (
 
   file.close();
 };
+
+export const gridNodeToCoordinates = (node: GridNode): Coordinates =>
+  new Coordinates(node.x, node.y);
